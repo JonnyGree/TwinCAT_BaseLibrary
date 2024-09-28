@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
+  <DUT Name="ST_MODULE_ALARM" Id="{ca2c2b3d-6868-4bca-9876-84400760747c}">
+    <Declaration><![CDATA[TYPE ST_MODULE_ALARM :
+STRUCT
+	active		: BOOL;
+	description	: STRING;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>
