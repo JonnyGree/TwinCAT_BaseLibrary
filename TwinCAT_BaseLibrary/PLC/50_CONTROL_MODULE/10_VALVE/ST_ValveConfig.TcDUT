@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
+  <DUT Name="ST_ValveConfig" Id="{f68645a2-8859-4f19-872e-7f1abe4df7d9}">
+    <Declaration><![CDATA[{attribute 'OPC.UA.DA.StructuredType' := '1'}
+{attribute 'OPC.UA.DA' := '1'}
+{attribute 'OPC.UA.DA.Access' := '3'}
+TYPE ST_ValveConfig :
+STRUCT
+	name		   			: STRING(255);
+	description				: STRING(255);
+    openTimeout   			: TIME := T#15S;        (* Timeout for opening the valve *)
+    closeTimeout  			: TIME := T#15S;        (* Timeout for closing the valve *)
+    enableOpenFeedback   	: BOOL := FALSE; (* Enable feedback for open status *)
+    enableCloseFeedback  	: BOOL := FALSE; (* Enable feedback for close status *)
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

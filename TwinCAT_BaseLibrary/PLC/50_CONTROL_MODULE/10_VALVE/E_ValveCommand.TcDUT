@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
+  <DUT Name="E_ValveCommand" Id="{0843ce8f-2407-44cf-b1c6-bae18a6f989c}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_ValveCommand :
+(
+    CMD_OFF := 0,
+    CMD_OPEN := 2,
+    CMD_CLOSE := 4
+);
+ END_TYPE;
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

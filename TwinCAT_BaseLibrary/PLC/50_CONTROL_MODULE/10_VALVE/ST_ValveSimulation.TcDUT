@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
+  <DUT Name="ST_ValveSimulation" Id="{99a0b1a1-662f-40ff-b5b3-34a813517371}">
+    <Declaration><![CDATA[{attribute 'OPC.UA.DA.StructuredType' := '1'}
+{attribute 'OPC.UA.DA' := '1'}
+TYPE ST_ValveSimulation :
+STRUCT
+	simEnable				: BOOL;
+	{attribute 'OPC.UA.DA' := '0'}
+	simOpenFeedback			: BOOL;
+	{attribute 'OPC.UA.DA' := '0'}
+	simCloseFeedback		: BOOL;
+	{attribute 'OPC.UA.DA' := '0'}
+	T_OpenFeedback			: TON;
+	{attribute 'OPC.UA.DA' := '0'}
+	T_CloseFeedback			: TON;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
+  <DUT Name="ST_ValveData" Id="{8268322d-c081-40cd-8654-baa2f47face8}">
+    <Declaration><![CDATA[{attribute 'OPC.UA.DA.StructuredType' := '1'}
+{attribute 'OPC.UA.DA' := '1'}
+TYPE ST_ValveData :
+STRUCT
+	{attribute 'OPC.UA.DA.Access' := '1'}
+    state         	: E_ValveState;        (* Current state of the valve *)
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	command        : E_ValveCommand;      (* Current state of the valve *)
+	{attribute 'OPC.UA.DA.Access' := '1'}
+	moduleState   	: E_ModuleState;       (* Module state: Manual or Auto *)
+	{attribute 'OPC.UA.DA.Access' := '1'}
+    enabled       	: BOOL;                (* Valve enable/disable status *)
+	{attribute 'OPC.UA.DA.Access' := '1'}
+    fault			: ST_ModuleAlarm;		
+	{attribute 'OPC.UA.DA.Access' := '1'}
+    elapsedTime   	: TIME;                 (* Time elapsed in current state *)
+	{attribute 'OPC.UA.DA.Access' := '1'}
+    lastOpenTime   	: TIME;                 (* Last time the valve spent opening *)
+	{attribute 'OPC.UA.DA.Access' := '1'}
+    lastCloseTime  	: TIME;                 (* Last time the valve spent closing *)
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>
