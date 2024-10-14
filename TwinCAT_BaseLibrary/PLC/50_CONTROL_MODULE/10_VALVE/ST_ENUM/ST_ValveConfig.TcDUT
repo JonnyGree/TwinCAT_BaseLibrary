@@ -10,8 +10,8 @@ STRUCT
 	description				: STRING(255);
     openTimeout   			: TIME := T#15S;        (* Timeout for opening the valve *)
     closeTimeout  			: TIME := T#15S;        (* Timeout for closing the valve *)
-    enableOpenFeedback   	: BOOL := FALSE; (* Enable feedback for open status *)
-    enableCloseFeedback  	: BOOL := FALSE; (* Enable feedback for close status *)
+    enableOpenFeedback   	: BOOL := FALSE; 		(* Enable feedback for open status *)
+    enableCloseFeedback  	: BOOL := FALSE; 		(* Enable feedback for close status *)
 END_STRUCT
 END_TYPE]]></Declaration>
   </DUT>

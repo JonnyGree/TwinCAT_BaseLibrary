@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
+  <DUT Name="ST_MotorConfig" Id="{79279e3f-85a7-4313-8de7-2505faa83af1}">
+    <Declaration><![CDATA[{attribute 'OPC.UA.DA.StructuredType' := '1'}
+{attribute 'OPC.UA.DA' := '1'}
+{attribute 'OPC.UA.DA.Access' := '3'}
+TYPE ST_MotorConfig :
+STRUCT
+	name		   			: STRING(255);
+	description				: STRING(255);
+	manualSetpoint			: LREAL := 0.0;
+    rampUpTime   			: TIME := T#15S;       
+    rampDownTime  			: TIME := T#15S;       
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

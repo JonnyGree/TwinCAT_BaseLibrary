@@ -1,14 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
-  <EnumerationTextList Name="E_ModuleLevel" Id="{09ed1a9d-c7e3-46c7-b801-145016d9b09d}">
+  <EnumerationTextList Name="E_FaultLevel" Id="{09ed1a9d-c7e3-46c7-b801-145016d9b09d}">
     <Declaration><![CDATA[{attribute 'qualified_only'}
 {attribute 'strict'}
-TYPE E_ModuleLevel :
+TYPE E_FaultLevel :
 (
-	INFO 		:= 0,
-	WARNING 	:= 1,
-	ALARM		:= 2,
-	CRITICAL	:= 3
+	DIAGNOSTIC 		:= 0,
+	LOW 			:= 1,
+	MEDIUM			:= 2,
+	HIGH			:= 3,
+	CRITICAL		:= 4
 );
 END_TYPE
 ]]></Declaration>
@@ -17,23 +18,28 @@ END_TYPE
         <o xml:space="preserve" t="TextListEnumerationTextListObject">
           <l n="TextList" t="ArrayList" cet="TextListRow">
             <o>
-              <v n="TextID">"INFO"</v>
+              <v n="TextID">"DIAGNOSTIC"</v>
               <v n="TextDefault">"0"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
-              <v n="TextID">"WARNING"</v>
+              <v n="TextID">"LOW"</v>
               <v n="TextDefault">"1"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
-              <v n="TextID">"ALARM"</v>
+              <v n="TextID">"MEDIUM"</v>
               <v n="TextDefault">"2"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>
-              <v n="TextID">"CRITICAL"</v>
+              <v n="TextID">"HIGH"</v>
               <v n="TextDefault">"3"</v>
+              <l n="LanguageTexts" t="ArrayList" />
+            </o>
+            <o>
+              <v n="TextID">"CRITICAL"</v>
+              <v n="TextDefault">"4"</v>
               <l n="LanguageTexts" t="ArrayList" />
             </o>
             <o>

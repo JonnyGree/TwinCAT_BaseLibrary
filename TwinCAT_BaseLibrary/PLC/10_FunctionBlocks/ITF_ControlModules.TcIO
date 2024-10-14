@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
+  <Itf Name="ITF_ControlModules" Id="{d0457209-c492-476f-8e3b-c46e71f62905}">
+    <Declaration><![CDATA[INTERFACE ITF_ControlModules
+]]></Declaration>
+    <Method Name="M_RaiseFault" Id="{988bc14e-a918-46f6-8464-07e61d958b3c}">
+      <Declaration><![CDATA[METHOD M_RaiseFault : BOOL
+VAR_INPUT
+	description		: STRING;
+	level 			: E_FaultLevel;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="M_ResetFault" Id="{68b0adf0-1233-4a2a-9841-119d2b2bb9b6}">
+      <Declaration><![CDATA[METHOD M_ResetFault : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+  </Itf>
+</TcPlcObject>

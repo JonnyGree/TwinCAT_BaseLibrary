@@ -1,0 +1,376 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
+  <POU Name="FB_Motor" Id="{eb93d929-c2f5-405e-91df-2b533a7b4a6d}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_Motor
+VAR_INPUT
+    ib_enable        		: BOOL;                 (* Enable valve control *)
+    ib_auto          		: BOOL;                 (* TRUE = Auto mode, FALSE = Manual mode *)
+END_VAR
+
+VAR_OUTPUT      
+END_VAR
+
+VAR
+	// OPC VARIABLES
+	data 		   			: ST_MotorData  ;
+	control					: ST_MotorControl;
+	sim						: ST_MotorSimulation;
+	
+	// FB VARIABLES
+	actualSpeed				: LREAL;
+	setpoint				: LREAL;
+    ton_ElapsedTime   		: TON;                	(* Timer for monitor current operation *)
+	error 					: ST_MotorError;
+END_VAR
+
+VAR PERSISTENT
+	config       			: ST_MotorConfig;      		(* Valve configuration parameters *)
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// MODULE STATE LOGIC
+IF NOT ib_enable THEN
+    (* Motor is disabled - reset to OFF state *)
+	M_PrivateOff();
+	data.moduleState := control.ManualStateRequest  := E_ModuleState.OFF;	
+ELSIF ib_auto THEN 
+	(* request auto from parent control - wait to release manual or off mode *)
+	IF control.ManualStateRequest = E_ModuleState.AUTO THEN
+		data.moduleState := control.ManualStateRequest := E_ModuleState.AUTO;
+		M_RaiseAlarm(description := error.infoControlledByParent, level := E_FaultLevel.DIAGNOSTIC);
+	ELSE
+		M_RaiseAlarm(description := error.warnRequestAuto, level := E_FaultLevel.DIAGNOSTIC);
+	END_IF
+ELSE
+	(* manual mode - state assign by operator *)
+	data.moduleState := control.ManualStateRequest;
+	IF data.moduleState = E_ModuleState.OFF THEN
+		M_PrivateOff();
+	END_IF
+END_IF
+
+// manual mode logic
+M_PrivateManualMode();
+
+// feedback simulation logic
+IF sim.simEnable THEN
+	M_Simulation();
+END_IF
+
+data.enabled 		:= ib_enable;
+data.currentSpeed 	:= actualSpeed;
+// TIMER LOGIC
+ton_ElapsedTime(IN:=FALSE, PT:=T#2147483647MS );
+IF FALSE THEN
+	data.elapsedTime := ton_ElapsedTime.ET;
+END_IF]]></ST>
+    </Implementation>
+    <Method Name="M_moveBck" Id="{c0b07cac-f6a8-4af1-8baa-4c9f7af1d29e}">
+      <Declaration><![CDATA[METHOD PRIVATE M_moveBck : BOOL
+VAR_INPUT
+	ir_setpoint : LREAL := 0.0;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[data.state 			:= E_MotorState.MOVING_BCK;
+data.command 		:= E_MotorCommand.CMD_MOVE_BCK;
+setpoint 			:= ir_setpoint;
+data.elapsedTime 	:= T#0S;
+M_resetFault();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_moveBckAuto" Id="{00ed04b7-fd64-4c64-beb1-6d9b9e7e1887}">
+      <Declaration><![CDATA[METHOD M_moveBckAuto : BOOL
+VAR_INPUT
+	ir_setpoint : LREAL := 0.0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF data.moduleState = E_ModuleState.AUTO THEN
+	M_MoveBck(ir_setpoint:= ir_setpoint);
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_moveFwd" Id="{b6605339-cbb0-402e-887e-6608744e5e1a}">
+      <Declaration><![CDATA[METHOD PRIVATE M_moveFwd : BOOL
+VAR_INPUT
+	ir_setpoint : LREAL := 0.0;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[data.state 			:= E_MotorState.MOVING_FWD;
+data.command 		:= E_MotorCommand.CMD_MOVE_FWD;
+setpoint 			:= ir_setpoint;
+data.elapsedTime 	:= T#0S;
+M_resetFault();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_moveFwdAuto" Id="{44fd1b4d-79fa-49ad-b9f3-193892abe116}">
+      <Declaration><![CDATA[METHOD M_moveFwdAuto : BOOL
+VAR_INPUT
+	ir_setpoint : LREAL := 0.0;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF data.moduleState = E_ModuleState.AUTO THEN
+	M_MoveFwd(ir_setpoint:= ir_setpoint);
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_PrivateManualMode" Id="{41999efd-dc37-434d-897e-7b763cf2e0fd}">
+      <Declaration><![CDATA[METHOD PRIVATE M_PrivateManualMode : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF data.moduleState = E_ModuleState.MANUAL THEN
+	IF control.manualMoveFwd THEN 
+		control.manualMoveFwd := FALSE;
+		M_moveFwd(ir_setpoint := config.manualSetpoint);
+	ELSIF control.manualMoveBwd THEN 
+		control.manualMoveBwd := FALSE;
+		M_moveBck(ir_setpoint := config.manualSetpoint);
+	ELSIF control.manualStop THEN 
+		control.manualStop := FALSE;
+		M_stop();
+	END_IF
+ELSE
+	control.manualMoveFwd := FALSE;
+	control.manualMoveBwd := FALSE;
+	control.manualStop := FALSE;
+END_IF
+
+IF control.ManualReset THEN 
+	control.ManualReset := FALSE;
+	M_resetFault();
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_PrivateOff" Id="{20f6c8fa-d039-4744-8195-91c77b5e0345}">
+      <Declaration><![CDATA[METHOD PRIVATE M_PrivateOff : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[data.state := E_MotorState.OFF;
+data.command := E_MotorCommand.CMD_STOP;
+data.elapsedTime := T#0S;
+M_resetFault();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_RaiseAlarm" Id="{241d4c74-525e-4593-bce1-9ac14e85cc6e}">
+      <Declaration><![CDATA[METHOD PRIVATE M_RaiseAlarm
+
+VAR_INPUT
+	description		: STRING;
+	level 			: E_FaultLevel;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[data.fault.active 		:= TRUE ;
+data.fault.description 	:= description ;
+data.fault.level		:= level;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_resetFault" Id="{2ad02f91-cdc8-4e10-b19b-4eb4900fbbca}">
+      <Declaration><![CDATA[METHOD M_resetFault : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[data.fault.active := FALSE;
+data.fault.description := '';
+data.fault.level := E_FaultLevel.DIAGNOSTIC;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_Simulation" Id="{111f700b-b64b-440c-88c0-cacce860ae3e}">
+      <Declaration><![CDATA[METHOD M_Simulation : BOOL
+VAR
+	rRand 		: LREAL ;
+	randValue	: LREAL;
+	randGen		: DRAND ;
+END_VAR
+
+VAR CONSTANT
+    rRampRateUp 		: LREAL := 5;   // Speed increment rate during ramp-up
+    rRampRateDown 		: LREAL := 5; // Speed decrement rate during ramp-down
+    rOscillationRange 	: LREAL := 2; // Range for oscillation around setpoint
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[randGen(seed:= 1, Num=>randValue);
+rRand := (randValue - 0.5) * rOscillationRange * 2; // Generates random value between -rOscillationRange and +rOscillationRange
+
+// Main Logic
+IF data.command = E_MotorCommand.CMD_MOVE_FWD THEN
+    // Ramp-up to the setpoint
+    IF actualSpeed < setpoint THEN
+        actualSpeed := setpoint + rRampRateUp;
+    ELSE
+        actualSpeed := setpoint;
+    END_IF
+
+ELSIF data.command = E_MotorCommand.CMD_MOVE_BCK THEN
+    // Ramp-up in the opposite direction to the negative setpoint
+    IF actualSpeed > -setpoint THEN
+        actualSpeed := setpoint - rRampRateUp;
+    ELSE
+        actualSpeed := -setpoint;
+    END_IF
+
+ELSIF data.command = E_MotorCommand.CMD_STOP THEN
+    // Ramp-down to zero
+    IF actualSpeed > 0 THEN
+        actualSpeed := actualSpeed - rRampRateDown;
+        IF actualSpeed < 0 THEN
+            actualSpeed := 0;
+        END_IF
+    ELSIF actualSpeed < 0 THEN
+        actualSpeed := actualSpeed + rRampRateDown;
+        IF actualSpeed > 0 THEN
+            actualSpeed := 0;
+        END_IF
+    END_IF
+
+END_IF
+
+// Simulate oscillation when running
+IF data.command = E_MotorCommand.CMD_MOVE_BCK OR data.command = E_MotorCommand.CMD_MOVE_FWD THEN
+    actualSpeed := actualSpeed + rRand;
+ELSE
+    actualSpeed := actualSpeed;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_stop" Id="{3f07e02a-411d-4978-a538-6eb623be46dc}">
+      <Declaration><![CDATA[METHOD PRIVATE M_stop : BOOL]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[data.state 	:= E_MotorState.STOP;
+data.command := E_MotorCommand.CMD_STOP;
+data.elapsedTime := T#0S;
+M_resetFault();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_stopAuto" Id="{180d1a36-6f3e-497c-9db3-49479345a483}">
+      <Declaration><![CDATA[METHOD M_stopAuto : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF data.moduleState = E_ModuleState.AUTO THEN
+	M_stop();
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="P_moduleState" Id="{dd1fadc2-727d-42c2-93ab-8306a928aecd}">
+      <Declaration><![CDATA[PROPERTY P_moduleState : E_ModuleState]]></Declaration>
+      <Get Name="Get" Id="{0f52a0a8-49c4-4e91-8839-7434fdd9ccba}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_moduleState:= data.moduleState;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="P_simulation" Id="{ae0c6d10-a0e9-4d89-85bc-1916f74f2753}">
+      <Declaration><![CDATA[PROPERTY P_simulation : REFERENCE TO BOOL;]]></Declaration>
+      <Get Name="Get" Id="{14c4f54f-a27d-42c4-8d83-da4d0560a1fb}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_simulation REF= sim.simEnable;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="P_state" Id="{08dae099-9e55-4f1d-97e9-8176e00c63d5}">
+      <Declaration><![CDATA[PROPERTY P_state : E_MotorState]]></Declaration>
+      <Get Name="Get" Id="{890e53ee-ac08-4bb2-9bd3-1aaca23c41d2}">
+        <Declaration><![CDATA[]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_state:=data.state;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <LineIds Name="FB_Motor">
+      <LineId Id="969" Count="8" />
+      <LineId Id="1141" Count="0" />
+      <LineId Id="978" Count="5" />
+      <LineId Id="1083" Count="0" />
+      <LineId Id="1086" Count="0" />
+      <LineId Id="1085" Count="0" />
+      <LineId Id="984" Count="8" />
+      <LineId Id="1077" Count="1" />
+      <LineId Id="1101" Count="0" />
+      <LineId Id="1079" Count="3" />
+      <LineId Id="644" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Motor.M_moveBck">
+      <LineId Id="6" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Motor.M_moveBckAuto">
+      <LineId Id="8" Count="1" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Motor.M_moveFwd">
+      <LineId Id="6" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Motor.M_moveFwdAuto">
+      <LineId Id="8" Count="1" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Motor.M_PrivateManualMode">
+      <LineId Id="39" Count="6" />
+      <LineId Id="56" Count="1" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="46" Count="3" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="50" Count="4" />
+      <LineId Id="34" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Motor.M_PrivateOff">
+      <LineId Id="6" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="15" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Motor.M_RaiseAlarm">
+      <LineId Id="5" Count="0" />
+      <LineId Id="12" Count="1" />
+    </LineIds>
+    <LineIds Name="FB_Motor.M_resetFault">
+      <LineId Id="5" Count="1" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Motor.M_Simulation">
+      <LineId Id="72" Count="0" />
+      <LineId Id="68" Count="1" />
+      <LineId Id="26" Count="7" />
+      <LineId Id="35" Count="7" />
+      <LineId Id="44" Count="13" />
+      <LineId Id="59" Count="4" />
+      <LineId Id="65" Count="2" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Motor.M_stop">
+      <LineId Id="6" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="12" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Motor.M_stopAuto">
+      <LineId Id="8" Count="1" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Motor.P_moduleState.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Motor.P_simulation.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Motor.P_state.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
+  <DUT Name="E_MotorCommand" Id="{c9ca8a4c-f8d3-4a4c-ab03-711123ed68d8}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_MotorCommand :
+(
+    CMD_STOP := 0,
+    CMD_MOVE_FWD := 2,
+    CMD_MOVE_BCK := 4
+);
+ END_TYPE;
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,102 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
+  <POU Name="FB_ControlMode" Id="{aa8165d9-f0a8-4ec7-8af3-232727d4d166}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ControlMode IMPLEMENTS ITF_ControlModules
+VAR_INPUT
+    ib_enable      	: BOOL;           // Input to enable the module
+    ib_auto        	: BOOL;           // Input to request automatic mode
+END_VAR
+
+VAR 
+	mode 			: E_ModuleState;
+END_VAR
+
+VAR_IN_OUT
+	i_requestMode 	: E_ModuleState;  // Input from HMI for manual state request
+    o_mode   		: E_ModuleState;  // Current module state
+	fault			: ST_ModuleAlarm;
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// NOT ENABLE BY PLC
+IF NOT ib_enable THEN
+	(* If not enabled by PLC , set the module to OFF *)
+	mode := E_ModuleState.OFF;
+	M_RaiseFault(description := 'Module disabled', level := E_FaultLevel.DIAGNOSTIC);
+// PARENT AUTO REQUEST	
+ELSIF ib_auto THEN 
+	(* module already in auto *) 
+	IF mode = E_ModuleState.AUTO THEN
+		i_requestMode := E_ModuleState.AUTO;
+		M_RaiseFault(description := 'Controlled by parent system', level := E_FaultLevel.DIAGNOSTIC);
+	(* wait to release manual or off mode *)
+	ELSIF i_requestMode = E_ModuleState.AUTO THEN
+		mode := E_ModuleState.AUTO;
+	(* info the parent is requesting auto mode *)
+	ELSE
+		M_RaiseFault(description := 'Request auto mode from parent system', level := E_FaultLevel.DIAGNOSTIC);
+	END_IF
+ELSE
+	// Manual mode - state is controlled by the HMI input
+	mode := i_requestMode;
+	
+	// Handle OFF state separately
+	IF mode = E_ModuleState.OFF THEN
+		M_RaiseFault(description := 'Module set to OFF by operator', level := E_FaultLevel.DIAGNOSTIC);
+	END_IF
+END_IF
+
+o_mode := mode;]]></ST>
+    </Implementation>
+    <Method Name="M_RaiseFault" Id="{ade556bc-f5cd-4f29-951a-7f6ee782a652}">
+      <Declaration><![CDATA[METHOD M_RaiseFault : BOOL
+VAR_INPUT
+	description	: STRING;
+	level	: E_FaultLevel;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fault.active 		:= TRUE ;
+fault.description 	:= description ;
+fault.level			:= level;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="M_ResetFault" Id="{bb3e0da9-9140-4e16-a72f-5e2c36fc40ff}">
+      <Declaration><![CDATA[METHOD M_ResetFault : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fault.active 		:= FALSE ;
+fault.description 	:= '' ;
+fault.level			:= E_FaultLevel.DIAGNOSTIC;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_ControlMode">
+      <LineId Id="115" Count="0" />
+      <LineId Id="41" Count="3" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="119" Count="1" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="73" Count="8" />
+      <LineId Id="83" Count="1" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="129" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ControlMode.M_RaiseFault">
+      <LineId Id="9" Count="1" />
+      <LineId Id="8" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ControlMode.M_ResetFault">
+      <LineId Id="5" Count="1" />
+      <LineId Id="4" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

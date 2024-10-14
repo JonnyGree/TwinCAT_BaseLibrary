@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
+  <POU Name="GenerateOscillation" Id="{534cb044-12f8-42ed-91e6-9701a1a88487}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION GenerateOscillation : REAL
+VAR_INPUT
+	rRand: REAL;
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[rRand := (RAND() - 0.5) * rOscillationRange * 2; // Generates random value between -rOscillationRange and +rOscillationRange
+    GenerateOscillation := rRand;]]></ST>
+    </Implementation>
+    <LineIds Name="GenerateOscillation">
+      <LineId Id="8" Count="0" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -6,16 +6,147 @@ VAR
 	valve1			: FB_Valve;
 	valve2			: FB_Valve;
 	valve3			: FB_Valve;
+	
+	motor1			: FB_Motor;
+	
+	step		: INT;
+	{attribute 'OPC.UA.DA' := '1'}
+	startCycle 	: BOOL;
+	auto		: BOOL;
+	cycleTimer	: TON;
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[valve1(ib_enable:=TRUE );
-valve2(ib_enable:=TRUE );
-valve3(ib_enable:=TRUE );]]></ST>
+      <ST><![CDATA[CASE step OF 
+	// START
+	0: 
+	IF startCycle THEN
+		step := 5;
+	END_IF
+	
+	// REQUEST AUTO
+	5:
+	step := 10;
+	auto := TRUE;
+	
+	// OPEN VALVE 1
+	10:
+	IF 	valve1.P_moduleState = E_ModuleState.AUTO AND
+		valve2.P_moduleState = E_ModuleState.AUTO AND
+		valve3.P_moduleState = E_ModuleState.AUTO THEN
+		valve1.M_Open_Auto();
+		step := 15;
+	END_IF
+	
+	// OPEN VALVE 2,3
+	15: 
+	IF 	valve1.P_state = E_ValveState.VALVE_OPEN THEN 
+		valve2.M_Open_Auto();
+		valve3.M_Open_Auto();
+		step := 20;
+	END_IF
+	
+	// PAUSE 
+	20: 
+	IF 	valve2.P_state = E_ValveState.VALVE_OPEN AND
+		valve3.P_state = E_ValveState.VALVE_OPEN THEN 
+		step := 21;
+	END_IF
+	
+	//  CLOSE VALVE 2
+	21:
+	cycleTimer(IN:= TRUE, PT:= T#3S);
+	IF 	cycleTimer.Q THEN
+		cycleTimer(IN:= FALSE);
+		valve2.M_CloseAuto();
+		step := 25;
+	END_IF
+		
+	// CLOSE VALVE 3
+	25: 
+	IF 	valve2.P_state = E_ValveState.VALVE_CLOSED THEN
+		valve3.M_CloseAuto();
+		step := 30;
+	END_IF
+	// CLOSE VALVE 1
+	30: 
+	IF 	valve3.P_state = E_ValveState.VALVE_CLOSED THEN
+		valve1.M_CloseAuto();
+		step := 35;
+	END_IF
+	35: 
+	IF 	valve1.P_state = E_ValveState.VALVE_CLOSED THEN
+		auto := FALSE;
+		step := 40;
+	END_IF
+	40: 
+	cycleTimer(IN:= TRUE, PT:= T#2S);
+	IF 	cycleTimer.Q THEN
+		cycleTimer(IN:= FALSE);
+		step := 0;
+	END_IF
+	
+	
+END_CASE
+
+valve1(ib_enable:=TRUE, ib_auto:= auto );
+valve2(ib_enable:=TRUE, ib_auto:= auto  );
+valve3(ib_enable:=TRUE, ib_auto:= auto  );
+valve1.P_simulation := TRUE;
+valve2.P_simulation := TRUE;
+valve3.P_simulation := TRUE;]]></ST>
     </Implementation>
     <LineIds Name="MAIN">
-      <LineId Id="2" Count="0" />
-      <LineId Id="9" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="38" Count="5" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="45" Count="2" />
+      <LineId Id="49" Count="1" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="56" Count="1" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="69" Count="1" />
+      <LineId Id="64" Count="1" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="131" Count="0" />
+      <LineId Id="133" Count="4" />
+      <LineId Id="140" Count="0" />
+      <LineId Id="138" Count="0" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="73" Count="2" />
+      <LineId Id="77" Count="1" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="80" Count="2" />
+      <LineId Id="84" Count="1" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="87" Count="1" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="98" Count="1" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="22" Count="1" />
+      <LineId Id="30" Count="2" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="91" Count="2" />
     </LineIds>
   </POU>
 </TcPlcObject>

@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
+  <DUT Name="ST_MotorSimulation" Id="{c7180d97-9242-4149-9c09-5832e2e4150e}">
+    <Declaration><![CDATA[{attribute 'OPC.UA.DA.StructuredType' := '1'}
+{attribute 'OPC.UA.DA' := '1'}
+TYPE ST_MotorSimulation :
+STRUCT
+	simEnable				: BOOL;
+	{attribute 'OPC.UA.DA' := '0'}
+	T_RampUpTime			: TON;
+	{attribute 'OPC.UA.DA' := '0'}
+	T_RampDownTime			: TON;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
+  <DUT Name="ST_MotorControl" Id="{c07d45be-6df1-4eb9-8fbd-469cb2a4ed97}">
+    <Declaration><![CDATA[{attribute 'OPC.UA.DA.StructuredType' := '1'}
+{attribute 'OPC.UA.DA' := '1'}
+{attribute 'OPC.UA.DA.Access' := '3'}
+TYPE ST_MotorControl :
+STRUCT
+	manualStop    			: BOOL;                 
+    manualMoveFwd   		: BOOL;   
+	manualMoveBwd   		: BOOL;               
+    manualReset   			: BOOL;                 
+	manualStateRequest  	: E_ModuleState:= 		E_ModuleState.AUTO;      
+END_STRUCT
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>
