@@ -10,7 +10,7 @@ STRUCT
     manualMoveFwd   		: BOOL;   
 	manualMoveBwd   		: BOOL;               
     manualReset   			: BOOL;                 
-	manualStateRequest  	: E_ModuleState:= 		E_ModuleState.AUTO;      
+	manualModeRequest  		: E_Mode:= 		E_Mode.AUTO;      
 END_STRUCT
 END_TYPE]]></Declaration>
   </DUT>

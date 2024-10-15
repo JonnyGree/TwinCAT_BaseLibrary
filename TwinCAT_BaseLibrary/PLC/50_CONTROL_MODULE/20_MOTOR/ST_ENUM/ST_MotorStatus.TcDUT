@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
+  <DUT Name="ST_MotorStatus" Id="{3a83415a-8d6b-422a-afc8-5484d1fceff9}">
+    <Declaration><![CDATA[{attribute 'OPC.UA.DA.StructuredType' := '1'}
+{attribute 'OPC.UA.DA' := '1'}
+{attribute 'OPC.UA.DA.Access' := '1'}
+TYPE ST_MotorStatus :
+STRUCT
+    state         	: E_MotorState;        (* Current state of the motor *)
+	command        	: E_MotorCommand;      (* Current command of the motor *)
+	mode   			: E_Mode;       (* Module state: Manual, Auto, Off *)
+    enabled       	: BOOL;                (* Motor enable/disable status *)
+	currentSpeed	: LREAL;	
+	autoSetpoint	: LREAL;	
+    elapsedTime   	: TIME;                 (* Time elapsed in current state *)
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

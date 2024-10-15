@@ -8,47 +8,39 @@ VAR_INPUT
 END_VAR
 
 VAR 
-	mode 			: E_ModuleState;
-END_VAR
-
-VAR_IN_OUT
-	i_requestMode 	: E_ModuleState;  // Input from HMI for manual state request
-    o_mode   		: E_ModuleState;  // Current module state
-	fault			: ST_ModuleAlarm;
-END_VAR
-VAR
+	fault			: ST_ModuleAlarm;  // OPC fault variable
+	mode 			: E_Mode;
+	requestMode		: E_Mode;
 END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[// NOT ENABLE BY PLC
 IF NOT ib_enable THEN
 	(* If not enabled by PLC , set the module to OFF *)
-	mode := E_ModuleState.OFF;
+	mode := E_Mode.OFF;
 	M_RaiseFault(description := 'Module disabled', level := E_FaultLevel.DIAGNOSTIC);
 // PARENT AUTO REQUEST	
 ELSIF ib_auto THEN 
 	(* module already in auto *) 
-	IF mode = E_ModuleState.AUTO THEN
-		i_requestMode := E_ModuleState.AUTO;
+	IF mode = E_Mode.AUTO THEN
+		requestMode := E_Mode.AUTO;
 		M_RaiseFault(description := 'Controlled by parent system', level := E_FaultLevel.DIAGNOSTIC);
 	(* wait to release manual or off mode *)
-	ELSIF i_requestMode = E_ModuleState.AUTO THEN
-		mode := E_ModuleState.AUTO;
+	ELSIF requestMode = E_Mode.AUTO THEN
+		mode := E_Mode.AUTO;
 	(* info the parent is requesting auto mode *)
 	ELSE
 		M_RaiseFault(description := 'Request auto mode from parent system', level := E_FaultLevel.DIAGNOSTIC);
 	END_IF
 ELSE
 	// Manual mode - state is controlled by the HMI input
-	mode := i_requestMode;
+	mode := requestMode;
 	
 	// Handle OFF state separately
-	IF mode = E_ModuleState.OFF THEN
+	IF mode = E_Mode.OFF THEN
 		M_RaiseFault(description := 'Module set to OFF by operator', level := E_FaultLevel.DIAGNOSTIC);
 	END_IF
-END_IF
-
-o_mode := mode;]]></ST>
+END_IF]]></ST>
     </Implementation>
     <Method Name="M_RaiseFault" Id="{ade556bc-f5cd-4f29-951a-7f6ee782a652}">
       <Declaration><![CDATA[METHOD M_RaiseFault : BOOL
@@ -72,6 +64,15 @@ fault.description 	:= '' ;
 fault.level			:= E_FaultLevel.DIAGNOSTIC;]]></ST>
       </Implementation>
     </Method>
+    <Property Name="P_mode" Id="{50587c59-f5d5-444c-82f7-a3afd9aff209}">
+      <Declaration><![CDATA[PROPERTY P_mode : E_Mode;]]></Declaration>
+      <Get Name="Get" Id="{67a0fd01-3318-4564-8c5f-62654cc15452}">
+        <Declaration><![CDATA[]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[P_mode := mode;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
     <LineIds Name="FB_ControlMode">
       <LineId Id="115" Count="0" />
       <LineId Id="41" Count="3" />
@@ -87,8 +88,6 @@ fault.level			:= E_FaultLevel.DIAGNOSTIC;]]></ST>
       <LineId Id="73" Count="8" />
       <LineId Id="83" Count="1" />
       <LineId Id="9" Count="0" />
-      <LineId Id="130" Count="0" />
-      <LineId Id="129" Count="0" />
     </LineIds>
     <LineIds Name="FB_ControlMode.M_RaiseFault">
       <LineId Id="9" Count="1" />
@@ -97,6 +96,9 @@ fault.level			:= E_FaultLevel.DIAGNOSTIC;]]></ST>
     <LineIds Name="FB_ControlMode.M_ResetFault">
       <LineId Id="5" Count="1" />
       <LineId Id="4" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ControlMode.P_mode.Get">
+      <LineId Id="2" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

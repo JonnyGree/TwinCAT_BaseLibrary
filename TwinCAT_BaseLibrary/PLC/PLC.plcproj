@@ -21,7 +21,7 @@
     <Compile Include="10_FunctionBlocks\00_COMMON\E_FaultLevel.TcTLEO">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="10_FunctionBlocks\00_COMMON\E_ModuleState.TcDUT">
+    <Compile Include="10_FunctionBlocks\00_COMMON\E_Mode.TcDUT">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="10_FunctionBlocks\00_COMMON\ST_ModuleAlarm.TcDUT">
@@ -45,40 +45,40 @@
     <Compile Include="50_CONTROL_MODULE\10_VALVE\ST_ENUM\ST_ValveConfig.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="50_CONTROL_MODULE\10_VALVE\ST_ENUM\ST_ValveData.TcDUT">
+    <Compile Include="50_CONTROL_MODULE\10_VALVE\ST_ENUM\ST_ValveStatus.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="50_CONTROL_MODULE\10_VALVE\ST_ENUM\ST_ValveError.TcDUT">
+    <Compile Include="50_CONTROL_MODULE\10_VALVE\ST_ENUM\ST_ValveErrorList.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="50_CONTROL_MODULE\10_VALVE\ST_ENUM\ST_ValveManualControl.TcDUT">
+    <Compile Include="50_CONTROL_MODULE\10_VALVE\ST_ENUM\ST_ValveControl.TcDUT">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="50_CONTROL_MODULE\10_VALVE\ST_ENUM\ST_ValveSimulation.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="50_CONTROL_MODULE\20_MOTOR\E_MotorCommand.TcDUT">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="50_CONTROL_MODULE\20_MOTOR\E_MotorState.TcDUT">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="50_CONTROL_MODULE\20_MOTOR\FB_Motor.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="50_CONTROL_MODULE\20_MOTOR\ST_MotorConfig.TcDUT">
+    <Compile Include="50_CONTROL_MODULE\20_MOTOR\ST_ENUM\E_MotorCommand.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="50_CONTROL_MODULE\20_MOTOR\ST_MotorData.TcDUT">
+    <Compile Include="50_CONTROL_MODULE\20_MOTOR\ST_ENUM\E_MotorState.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="50_CONTROL_MODULE\20_MOTOR\ST_MotorError.TcDUT">
+    <Compile Include="50_CONTROL_MODULE\20_MOTOR\ST_ENUM\ST_MotorConfig.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="50_CONTROL_MODULE\20_MOTOR\ST_MotorControl.TcDUT">
+    <Compile Include="50_CONTROL_MODULE\20_MOTOR\ST_ENUM\ST_MotorControl.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="50_CONTROL_MODULE\20_MOTOR\ST_MotorSimulation.TcDUT">
+    <Compile Include="50_CONTROL_MODULE\20_MOTOR\ST_ENUM\ST_MotorStatus.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="50_CONTROL_MODULE\20_MOTOR\ST_ENUM\ST_MotorErrorList.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="50_CONTROL_MODULE\20_MOTOR\ST_ENUM\ST_MotorSimulation.TcDUT">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="50_CONTROL_MODULE\90_FUNCTIONS\GenerateOscillation.TcPOU">
@@ -97,6 +97,7 @@
     <Folder Include="50_CONTROL_MODULE\10_VALVE" />
     <Folder Include="50_CONTROL_MODULE\10_VALVE\ST_ENUM" />
     <Folder Include="50_CONTROL_MODULE\20_MOTOR" />
+    <Folder Include="50_CONTROL_MODULE\20_MOTOR\ST_ENUM" />
     <Folder Include="50_CONTROL_MODULE\90_FUNCTIONS" />
     <Folder Include="DUTs" />
     <Folder Include="GVLs" />

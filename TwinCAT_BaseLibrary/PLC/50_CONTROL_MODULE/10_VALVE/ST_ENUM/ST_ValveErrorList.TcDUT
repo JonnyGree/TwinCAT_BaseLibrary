@@ -1,15 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
-  <DUT Name="ST_ValveError" Id="{16a7da1a-b268-4d73-948a-5454623bf3a2}">
-    <Declaration><![CDATA[TYPE ST_ValveError :
+  <DUT Name="ST_ValveErrorList" Id="{16a7da1a-b268-4d73-948a-5454623bf3a2}">
+    <Declaration><![CDATA[TYPE ST_ValveErrorList :
 STRUCT 
 	errOpenTimeout: 		STRING	:= 'alarm open timeout';
 	errLostOpenPosition: 	STRING	:= 'lost open position';
 	errCloseTimeout: 		STRING	:= 'alarm closing timeout';
 	errLostClosePosition: 	STRING	:= 'lost close position';
 	errBothSensorOn: 		STRING	:= 'alarm both sensor on';
-	warnRequestAuto:		STRING	:= 'request auto control from parent em';
-	infoControlledByParent:	STRING	:= 'controlled by parent em';
 END_STRUCT
 END_TYPE
 ]]></Declaration>

@@ -2,6 +2,8 @@
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
   <DUT Name="ST_ModuleAlarm" Id="{ca2c2b3d-6868-4bca-9876-84400760747c}">
     <Declaration><![CDATA[{attribute 'OPC.UA.DA.StructuredType' := '1'}
+{attribute 'OPC.UA.DA' := '1'}
+{attribute 'OPC.UA.DA.Access' := '3'}
 TYPE ST_ModuleAlarm :
 STRUCT
 	active			: BOOL;

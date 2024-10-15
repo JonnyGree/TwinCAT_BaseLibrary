@@ -17,5 +17,11 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
     </Method>
+    <Property Name="P_mode" Id="{54246183-a3a3-42d0-88d8-75c7c04c9753}">
+      <Declaration><![CDATA[PROPERTY P_mode : E_Mode;]]></Declaration>
+      <Get Name="Get" Id="{8fa5384d-6d27-40a6-bc3c-15d67c268d2d}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
   </Itf>
 </TcPlcObject>

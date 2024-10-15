@@ -1,10 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.13">
   <POU Name="FB_Valve" Id="{223f022c-0a76-49d4-ae57-cf213fa00f1c}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK FB_Valve
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_Valve EXTENDS FB_ControlMode
 VAR_INPUT
-    ib_enable        		: BOOL;                 (* Enable valve control *)
-    ib_auto          		: BOOL;                 (* TRUE = Auto mode, FALSE = Manual mode *)
 	ib_openFeedback			: BOOL;
 	ib_closeFeedback		: BOOL;	
 END_VAR
@@ -16,8 +14,8 @@ END_VAR
 
 VAR
 	// OPC VARIABLES
-	data 		   			: ST_ValveData  ;
-	control					: ST_ValveManualControl;
+	status 		   			: ST_ValveStatus  ;
+	control					: ST_ValveControl;
 	sim						: ST_ValveSimulation;
 	
 	// FB VARIABLES
@@ -27,7 +25,7 @@ VAR
 	startClose				: BOOL;
     ton_ElapsedTime   		: TON;                	(* Timer for monitor current operation *)
 	startMovement			: BOOL;
-	error 					: ST_ValveError;
+	error 					: ST_ValveErrorList;
 	openFeedback			: BOOL;
 	closeFeedback			: BOOL;
 END_VAR
@@ -38,28 +36,24 @@ END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[// MODULE STATE LOGIC
-IF NOT ib_enable THEN
-    (* Valve is disabled - reset to OFF state *)
-	M_Private_Off();
-	data.moduleState := control.ManualStateRequest  := E_ModuleState.OFF;	
-ELSIF ib_auto THEN 
-	(* request auto from parent control - wait to release manual or off mode *)
-	IF control.ManualStateRequest = E_ModuleState.AUTO THEN
-		data.moduleState := control.ManualStateRequest := E_ModuleState.AUTO;
-		M_RaiseFault(description := error.infoControlledByParent, level := E_FaultLevel.DIAGNOSTIC);
-	ELSE
-		M_RaiseFault(description := error.warnRequestAuto, level := E_FaultLevel.DIAGNOSTIC);
-	END_IF
-ELSE
-	(* manual mode - state assign by operator *)
-	data.moduleState := control.ManualStateRequest;
-	IF data.moduleState = E_ModuleState.OFF THEN
+SUPER^.requestMode := control.manualModeRequest;
+SUPER^();  
+CASE mode OF 
+	
+	E_Mode.OFF:
 		M_Private_Off();
-	END_IF
-END_IF
+	
+	E_Mode.MANUAL:
+		// manual logic:
+		;
+	E_Mode.AUTO:
+		// auto logic:
+		;	
+END_CASE
 
-// manual mode logic
-M_Private_ManualMode();
+
+// manual control logic
+M_Private_ManualControl();
 
 // feedback simulation logic
 IF sim.simEnable THEN
@@ -69,100 +63,87 @@ END_IF
 openFeedback := ib_openFeedback OR sim.simOpenFeedback;
 closeFeedback := ib_closeFeedback OR sim.simCloseFeedback;
 
-
-(* Main state handling *)
-CASE data.state OF		
-    E_ValveState.VALVE_OPENING:
-
-       	IF OpenFeedback AND config.enableOpenFeedback THEN
-           	data.state:= E_ValveState.VALVE_OPEN;
-			startMovement := FALSE;
-		ELSIF NOT config.enableOpenFeedback THEN
-			data.state:= E_ValveState.VALVE_OPEN;
-			startMovement := FALSE;
-		ELSIF ton_ElapsedTime.et >= config.openTimeout THEN
-            (* Timeout occurred *)
-            data.state:= E_ValveState.VALVE_FAULT;
-			M_RaiseFault(description := error.errOpenTimeout, level := E_FaultLevel.HIGH);
-        END_IF
-
-	 E_ValveState.VALVE_OPEN:
-        IF NOT openFeedback AND config.enableOpenFeedback THEN
-           	data.state:= E_ValveState.VALVE_FAULT;
-			M_RaiseFault(description := error.errLostOpenPosition, level := E_FaultLevel.HIGH);
-		END_IF
-		
-	E_ValveState.VALVE_CLOSING:
-       
-        IF closeFeedback AND config.enableCloseFeedback THEN
-           	data.state:= E_ValveState.VALVE_CLOSED;
-			startMovement := FALSE;
-		ELSIF NOT config.enableCloseFeedback THEN
-			data.state:= E_ValveState.VALVE_CLOSED;
-			startMovement := FALSE;
-		 ELSIF ton_ElapsedTime.et >= config.closeTimeout THEN
-            (* Timeout occurred *)
-            data.state:= E_ValveState.VALVE_FAULT;
-          M_RaiseFault(description := error.errCloseTimeout, level := E_FaultLevel.HIGH);
-        END_IF
-		
-	E_ValveState.VALVE_CLOSED:
-        IF NOT closeFeedback AND config.enableCloseFeedback THEN
-           	data.state:= E_ValveState.VALVE_FAULT;
-			M_RaiseFault(description := error.errLostClosePosition, level := E_FaultLevel.HIGH);
-		END_IF
-
-    E_ValveState.VALVE_FAULT:
-        (* Fault Handling: Manual reset or auto-clear can be added here *)
-        (* In this simple example, it remains in fault state until reset manually *)
-		IF control.ManualReset THEN
-			control.ManualReset := FALSE;
-			M_resetFault();
-		END_IF
-		
-	ELSE
-		IF data.command = E_ValveCommand.CMD_OPEN AND (openFeedback OR NOT config.enableOpenFeedback) THEN
-			data.state:=E_ValveState.VALVE_OPEN;
-		ELSIF data.command = E_ValveCommand.CMD_CLOSE AND (closeFeedback OR NOT config.enableCloseFeedback) THEN
-			data.state:=E_ValveState.VALVE_OPEN;
-		ELSE 
-			//; 
-		END_IF
-		
-
-END_CASE;
-
-// OUTPUT HANDLING
-CASE data.command OF		
+// MAIN LOGIC
+CASE status.command OF		
 	E_ValveCommand.CMD_OFF:
 		ob_OpenCommand := FALSE;
 		ob_CloseCommand:= FALSE;
+		startMovement := FALSE;
+		
+
 	E_ValveCommand.CMD_CLOSE:
 		ob_OpenCommand := FALSE;
 		ob_CloseCommand:= TRUE;
+		
+		CASE status.state OF
+		
+		E_ValveState.VALVE_NEW_COMMAND: 
+			status.state := E_ValveState.VALVE_CLOSING;
+			
+		E_ValveState.VALVE_CLOSING: 
+			IF CloseFeedback OR NOT config.enableCloseFeedback THEN
+				status.state:= E_ValveState.VALVE_CLOSED;
+			ELSIF ton_ElapsedTime.et >= config.closeTimeout THEN
+				(* Timeout occurred *)
+				status.state:= E_ValveState.VALVE_FAULT;
+				M_RaiseFault(description := error.errCloseTimeout, level := E_FaultLevel.HIGH);
+			END_IF
+		E_ValveState.VALVE_CLOSED: 
+			startMovement := FALSE;
+			IF NOT CloseFeedback AND config.enableCloseFeedback THEN
+				status.state:= E_ValveState.VALVE_FAULT;
+				M_RaiseFault(description := error.errLostClosePosition, level := E_FaultLevel.HIGH);
+			END_IF
+		END_CASE
+		
+		
 	E_ValveCommand.CMD_OPEN:
 		ob_OpenCommand := TRUE;
 		ob_CloseCommand:= FALSE;
+		
+		CASE status.state OF
+		
+		E_ValveState.VALVE_NEW_COMMAND: 
+			status.state := E_ValveState.VALVE_OPENING;
+			
+		E_ValveState.VALVE_OPENING: 
+			IF OpenFeedback OR NOT config.enableOpenFeedback THEN
+				status.state:= E_ValveState.VALVE_OPEN;
+			ELSIF ton_ElapsedTime.et >= config.openTimeout THEN
+				(* Timeout occurred *)
+				status.state:= E_ValveState.VALVE_FAULT;
+				M_RaiseFault(description := error.errOpenTimeout, level := E_FaultLevel.HIGH);
+			END_IF
+		E_ValveState.VALVE_OPEN: 
+			startMovement := FALSE;
+			IF NOT openFeedback AND config.enableOpenFeedback THEN
+				status.state:= E_ValveState.VALVE_FAULT;
+				M_RaiseFault(description := error.errLostOpenPosition, level := E_FaultLevel.HIGH);
+			END_IF
+		END_CASE
+		
 END_CASE
 
-data.enabled := ib_enable;
+// OPC VARIABLES
+status.mode := mode;
+status.enabled := ib_enable;
 
 // TIMER LOGIC
 ton_ElapsedTime(IN:=startMovement, PT:=T#2147483647MS );
 IF startMovement THEN
-	data.elapsedTime := ton_ElapsedTime.ET;
+	status.elapsedTime := ton_ElapsedTime.ET;
 END_IF
 
 ton_openTime(IN:=startOpen, 	PT:=T#2147483647MS );
-IF startOpen AND ( (openFeedback AND config.enableOpenFeedback) OR NOT config.enableOpenFeedback ) THEN
+IF startOpen AND ( openFeedback OR NOT config.enableOpenFeedback ) THEN
 	startOpen := FALSE;
-	data.lastOpenTime := ton_openTime.ET ;
+	status.lastOpenTime := ton_openTime.ET ;
 END_IF
 
 ton_closeTime(IN:=startClose, 	PT:=T#2147483647MS );
-IF startClose AND ( (closeFeedback AND config.enableOpenFeedback) OR NOT config.enableOpenFeedback ) THEN
+IF startClose AND ( closeFeedback OR NOT config.enableOpenFeedback ) THEN
 	startClose := FALSE;
-	data.lastCloseTime := ton_openTime.ET ;
+	status.lastCloseTime := ton_closeTime.ET ;
 END_IF]]></ST>
     </Implementation>
     <Method Name="M_CloseAuto" Id="{7a89c71d-7369-417e-973f-91421611a6c9}">
@@ -170,7 +151,7 @@ END_IF]]></ST>
 
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF data.moduleState = E_ModuleState.AUTO THEN
+        <ST><![CDATA[IF status.mode = E_Mode.AUTO THEN
 	M_Private_CloseValve();
 END_IF]]></ST>
       </Implementation>
@@ -179,7 +160,7 @@ END_IF]]></ST>
       <Declaration><![CDATA[METHOD M_Open_Auto : BOOL
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF data.moduleState = E_ModuleState.AUTO THEN
+        <ST><![CDATA[IF status.mode = E_Mode.AUTO THEN
 	M_Private_OpenValve();
 END_IF]]></ST>
       </Implementation>
@@ -187,19 +168,19 @@ END_IF]]></ST>
     <Method Name="M_Private_CloseValve" Id="{cba43f05-a8c9-4052-af4c-6a06949011fb}">
       <Declaration><![CDATA[METHOD PRIVATE M_Private_CloseValve : BOOL]]></Declaration>
       <Implementation>
-        <ST><![CDATA[data.state 	:= E_ValveState.VALVE_CLOSING;
-data.command 	:= E_ValveCommand.CMD_CLOSE;
+        <ST><![CDATA[status.state 	:= E_ValveState.VALVE_NEW_COMMAND;
+status.command 	:= E_ValveCommand.CMD_CLOSE;
 startMovement 	:= TRUE;
 startClose 		:= TRUE;
-data.elapsedTime := T#0S;
+status.elapsedTime := T#0S;
 M_resetFault();]]></ST>
       </Implementation>
     </Method>
-    <Method Name="M_Private_ManualMode" Id="{954b5030-3f47-48e9-bff1-d9126bca9554}">
-      <Declaration><![CDATA[METHOD PRIVATE M_Private_ManualMode : BOOL
+    <Method Name="M_Private_ManualControl" Id="{954b5030-3f47-48e9-bff1-d9126bca9554}">
+      <Declaration><![CDATA[METHOD PRIVATE M_Private_ManualControl : BOOL
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF data.moduleState = E_ModuleState.MANUAL THEN
+        <ST><![CDATA[IF status.mode = E_Mode.MANUAL THEN
 	IF control.ManualOpen THEN 
 		control.ManualOpen := FALSE;
 		M_Private_OpenValve();
@@ -215,6 +196,7 @@ END_IF
 IF control.ManualReset THEN 
 	control.ManualReset := FALSE;
 	M_resetFault();
+	status.state := E_ValveState.VALVE_NEW_COMMAND;
 END_IF]]></ST>
       </Implementation>
     </Method>
@@ -222,9 +204,9 @@ END_IF]]></ST>
       <Declaration><![CDATA[METHOD PRIVATE M_Private_Off : BOOL
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[data.state := E_ValveState.VALVE_OFF;
-data.command := E_ValveCommand.CMD_OFF;
-data.elapsedTime := T#0S;
+        <ST><![CDATA[status.state := E_ValveState.VALVE_OFF;
+status.command := E_ValveCommand.CMD_OFF;
+status.elapsedTime := T#0S;
 M_resetFault();]]></ST>
       </Implementation>
     </Method>
@@ -232,42 +214,12 @@ M_resetFault();]]></ST>
       <Declaration><![CDATA[METHOD PRIVATE M_Private_OpenValve : BOOL
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[data.state 	:= E_ValveState.VALVE_OPENING;
-data.command 	:= E_ValveCommand.CMD_OPEN;
+        <ST><![CDATA[status.state 	:= E_ValveState.VALVE_NEW_COMMAND;
+status.command 	:= E_ValveCommand.CMD_OPEN;
 startMovement 	:= TRUE;
 startOpen	  	:= TRUE;
-data.elapsedTime := T#0S;
+status.elapsedTime := T#0S;
 M_resetFault();]]></ST>
-      </Implementation>
-    </Method>
-    <Method Name="M_RaiseFault" Id="{e1b16a0f-e323-479e-83da-1ceb37f2da70}">
-      <Declaration><![CDATA[METHOD PRIVATE M_RaiseFault
-
-VAR_INPUT
-	description		: STRING;
-	level 			: E_FaultLevel;
-END_VAR
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[data.fault.active 		:= TRUE ;
-data.fault.description 	:= description ;
-data.fault.level		:= level;]]></ST>
-      </Implementation>
-    </Method>
-    <Method Name="M_ResetFault" Id="{3622e483-cd75-48fd-9e02-996e5766221e}">
-      <Declaration><![CDATA[METHOD M_ResetFault : BOOL
-]]></Declaration>
-      <Implementation>
-        <ST><![CDATA[data.fault.active := FALSE;
-data.fault.description := '';
-IF data.command = E_ValveCommand.CMD_OPEN THEN
-	data.state := E_ValveState.VALVE_OPENING;
-ELSIF data.command = E_ValveCommand.CMD_CLOSE THEN
-	data.state := E_ValveState.VALVE_CLOSING;
-ELSE
-	data.state := E_ValveState.VALVE_OFF;
-END_IF
-]]></ST>
       </Implementation>
     </Method>
     <Method Name="M_Simulation" Id="{b0d6f70b-461e-497e-8fa0-5e93dbddac0e}">
@@ -276,29 +228,18 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[sim.T_CloseFeedback(IN:= data.command=E_ValveCommand.CMD_CLOSE, PT := T#5S, Q=> sim.simCloseFeedback);
-sim.T_OpenFeedback(IN:= data.command=E_ValveCommand.CMD_OPEN, PT := T#5S, Q=> sim.simOpenFeedback);]]></ST>
+        <ST><![CDATA[sim.T_CloseFeedback(IN:= status.command=E_ValveCommand.CMD_CLOSE, PT := T#5S, Q=> sim.simCloseFeedback);
+sim.T_OpenFeedback(IN:= status.command=E_ValveCommand.CMD_OPEN, PT := T#5S, Q=> sim.simOpenFeedback);]]></ST>
       </Implementation>
     </Method>
-    <Property Name="P_moduleState" Id="{beae066e-0398-4944-97b3-bf540d767afc}">
-      <Declaration><![CDATA[PROPERTY P_moduleState : E_ModuleState]]></Declaration>
-      <Get Name="Get" Id="{973a6087-0514-4b86-93b3-543ec8e5a97e}">
+    <Property Name="P_simulation" Id="{f9290215-af00-4364-8230-54ff7c9e978c}">
+      <Declaration><![CDATA[PROPERTY P_simulation : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{ffe60468-6a00-4bfd-b0b7-42cbdd38b840}">
         <Declaration><![CDATA[VAR
 END_VAR
 ]]></Declaration>
         <Implementation>
-          <ST><![CDATA[P_moduleState:= data.moduleState;]]></ST>
-        </Implementation>
-      </Get>
-    </Property>
-    <Property Name="P_simulation" Id="{ccbcc440-abf3-4d4b-8cac-5d35d7b539ab}">
-      <Declaration><![CDATA[PROPERTY P_simulation : REFERENCE TO BOOL;]]></Declaration>
-      <Get Name="Get" Id="{b6f8ac8c-4faf-4676-92a6-c19e20acd897}">
-        <Declaration><![CDATA[VAR
-END_VAR
-]]></Declaration>
-        <Implementation>
-          <ST><![CDATA[P_simulation REF= sim.simEnable;]]></ST>
+          <ST><![CDATA[P_Simulation REF= sim.simEnable;]]></ST>
         </Implementation>
       </Get>
     </Property>
@@ -307,12 +248,19 @@ END_VAR
       <Get Name="Get" Id="{28794dcc-3537-485e-b165-f9d7950472aa}">
         <Declaration><![CDATA[]]></Declaration>
         <Implementation>
-          <ST><![CDATA[P_state:=data.state;]]></ST>
+          <ST><![CDATA[P_state:=status.state;]]></ST>
         </Implementation>
       </Get>
     </Property>
     <LineIds Name="FB_Valve">
-      <LineId Id="1428" Count="125" />
+      <LineId Id="1795" Count="0" />
+      <LineId Id="1902" Count="1" />
+      <LineId Id="1796" Count="12" />
+      <LineId Id="1899" Count="0" />
+      <LineId Id="1809" Count="70" />
+      <LineId Id="1901" Count="0" />
+      <LineId Id="1900" Count="0" />
+      <LineId Id="1880" Count="18" />
       <LineId Id="1090" Count="0" />
     </LineIds>
     <LineIds Name="FB_Valve.M_CloseAuto">
@@ -331,11 +279,12 @@ END_VAR
       <LineId Id="5" Count="0" />
       <LineId Id="12" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Valve.M_Private_ManualMode">
+    <LineIds Name="FB_Valve.M_Private_ManualControl">
       <LineId Id="15" Count="7" />
       <LineId Id="29" Count="2" />
       <LineId Id="5" Count="0" />
       <LineId Id="35" Count="3" />
+      <LineId Id="40" Count="0" />
       <LineId Id="34" Count="0" />
     </LineIds>
     <LineIds Name="FB_Valve.M_Private_Off">
@@ -352,23 +301,9 @@ END_VAR
       <LineId Id="14" Count="0" />
       <LineId Id="19" Count="0" />
     </LineIds>
-    <LineIds Name="FB_Valve.M_RaiseFault">
-      <LineId Id="5" Count="0" />
-      <LineId Id="12" Count="1" />
-    </LineIds>
-    <LineIds Name="FB_Valve.M_ResetFault">
-      <LineId Id="5" Count="1" />
-      <LineId Id="9" Count="1" />
-      <LineId Id="12" Count="3" />
-      <LineId Id="11" Count="0" />
-      <LineId Id="7" Count="0" />
-    </LineIds>
     <LineIds Name="FB_Valve.M_Simulation">
       <LineId Id="16" Count="0" />
       <LineId Id="11" Count="0" />
-    </LineIds>
-    <LineIds Name="FB_Valve.P_moduleState.Get">
-      <LineId Id="2" Count="0" />
     </LineIds>
     <LineIds Name="FB_Valve.P_simulation.Get">
       <LineId Id="2" Count="0" />

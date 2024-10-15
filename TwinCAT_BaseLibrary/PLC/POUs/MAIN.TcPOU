@@ -31,9 +31,9 @@ END_VAR
 	
 	// OPEN VALVE 1
 	10:
-	IF 	valve1.P_moduleState = E_ModuleState.AUTO AND
-		valve2.P_moduleState = E_ModuleState.AUTO AND
-		valve3.P_moduleState = E_ModuleState.AUTO THEN
+	IF 	valve1.P_mode = E_Mode.AUTO AND
+		valve2.P_mode = E_Mode.AUTO AND
+		valve3.P_mode = E_Mode.AUTO THEN
 		valve1.M_Open_Auto();
 		step := 15;
 	END_IF
@@ -89,12 +89,15 @@ END_VAR
 	
 END_CASE
 
-valve1(ib_enable:=TRUE, ib_auto:= auto );
+valve1(ib_enable:=TRUE, ib_auto:= auto  );
 valve2(ib_enable:=TRUE, ib_auto:= auto  );
 valve3(ib_enable:=TRUE, ib_auto:= auto  );
 valve1.P_simulation := TRUE;
 valve2.P_simulation := TRUE;
-valve3.P_simulation := TRUE;]]></ST>
+valve3.P_simulation := TRUE;
+
+motor1(ib_enable:=TRUE, ib_auto:= auto  );
+motor1.P_simulation := TRUE;]]></ST>
     </Implementation>
     <LineIds Name="MAIN">
       <LineId Id="18" Count="0" />
@@ -147,6 +150,9 @@ valve3.P_simulation := TRUE;]]></ST>
       <LineId Id="30" Count="2" />
       <LineId Id="27" Count="0" />
       <LineId Id="91" Count="2" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="157" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>
